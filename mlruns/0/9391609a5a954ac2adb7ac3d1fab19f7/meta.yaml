@@ -1,0 +1,15 @@
+artifact_uri: file:///D:/VinUni/Day21/Trace%202/Day21-Track2-CI-CD-for-AI-Systems/mlruns/0/9391609a5a954ac2adb7ac3d1fab19f7/artifacts
+end_time: 1782404389918
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 9391609a5a954ac2adb7ac3d1fab19f7
+run_name: worried-bug-396
+run_uuid: 9391609a5a954ac2adb7ac3d1fab19f7
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1782404383111
+status: 3
+tags: []
+user_id: ngomi
