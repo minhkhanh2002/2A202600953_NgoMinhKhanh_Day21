@@ -1,2 +1,6 @@
 [core]
     no_scm = True
+    remote = myremote
+['remote "myremote"']
+    url = gs://balmy-geography-500517-k1-bucket/dvc
+    credentialpath = ../sa-key.json
