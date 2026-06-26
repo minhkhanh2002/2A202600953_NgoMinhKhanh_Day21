@@ -7,6 +7,7 @@ on:
       - 'data/**.dvc'
       - 'src/**.py'
       - 'params.yaml'
+      - '.github/workflows/mlops.yml'
   workflow_dispatch:
 
 jobs:
@@ -32,7 +33,7 @@ jobs:
 
       - name: Run unit tests
         # TODO 1: Chay pytest tren thu muc tests/ voi co -v
-        run: pytest tests/ -v
+        run: python -m pytest tests/ -v
 
 
   # ---------------------------------------------------------------------------
@@ -60,8 +61,8 @@ jobs:
       - name: Authenticate to Cloud Storage
         # TODO 2: Ghi noi dung credentials ra file tam va set bien moi truong xac thuc.
         run: |
-          echo '${{ secrets.CLOUD_CREDENTIALS }}' > /tmp/sa-key.json
-          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa-key.json" >> $GITHUB_ENV
+          echo '${{ secrets.CLOUD_CREDENTIALS }}' > sa-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$PWD/sa-key.json" >> $GITHUB_ENV
 
       - name: Pull data with DVC
         # TODO 3: Pull cac file du lieu can thiet tu cloud storage bang lenh dvc pull.
