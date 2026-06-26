@@ -2,7 +2,17 @@ import os
 import json
 import numpy as np
 import pandas as pd
+import pytest
+import mlflow
 from src.train import train
+
+
+import pathlib
+
+@pytest.fixture(autouse=True)
+def set_mlflow_env(tmp_path):
+    os.environ["MLFLOW_TRACKING_URI"] = pathlib.Path(tmp_path / "mlruns").as_uri()
+    yield
 
 
 FEATURE_NAMES = [
