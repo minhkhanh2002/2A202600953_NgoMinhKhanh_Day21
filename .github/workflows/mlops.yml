@@ -157,9 +157,11 @@ jobs:
         run: pip install google-cloud-storage
 
       - name: Authenticate to Cloud Storage
+        env:
+          CLOUD_CREDENTIALS_DATA: ${{ secrets.CLOUD_CREDENTIALS }}
         run: |
-          echo '${{ secrets.CLOUD_CREDENTIALS }}' > /tmp/sa-key.json
-          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa-key.json" >> $GITHUB_ENV
+          echo "$CLOUD_CREDENTIALS_DATA" > sa-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$PWD/sa-key.json" >> $GITHUB_ENV
 
       - name: Compare with previous accuracy (Bonus 4)
         run: |
@@ -210,17 +212,67 @@ jobs:
     needs: eval
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
 
-      - name: SSH deploy to VM
+      - name: Authenticate to Cloud Storage
+        env:
+          CLOUD_CREDENTIALS_DATA: ${{ secrets.CLOUD_CREDENTIALS }}
+        run: |
+          echo "$CLOUD_CREDENTIALS_DATA" > sa-key.json
+
+      - name: Create directories on VM
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            # TODO 7: Restart service mlops-serve tren VM.
+            mkdir -p ~/models ~/src
+
+      - name: Copy files to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          source: "src/serve.py,sa-key.json"
+          target: "/home/${{ secrets.VM_USER }}/"
+
+      - name: SSH deploy and configure service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            # 1. Cai dat cac thu vien can thiet
+            sudo apt update && sudo apt install -y python3-pip
+            pip3 install fastapi uvicorn scikit-learn joblib google-cloud-storage
+
+            # 2. Tao systemd service file
+            sudo tee /etc/systemd/system/mlops-serve.service > /dev/null <<'EOF'
+            [Unit]
+            Description=MLOps Model Inference Server
+            After=network.target
+
+            [Service]
+            User=${{ secrets.VM_USER }}
+            WorkingDirectory=/home/${{ secrets.VM_USER }}
+            Environment="GCS_BUCKET=${{ secrets.CLOUD_BUCKET }}"
+            Environment="GOOGLE_APPLICATION_CREDENTIALS=/home/${{ secrets.VM_USER }}/sa-key.json"
+            ExecStart=/usr/bin/python3 /home/${{ secrets.VM_USER }}/src/serve.py
+            Restart=always
+            RestartSec=5
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+
+            # 3. Enable va restart service
+            sudo systemctl daemon-reload
+            sudo systemctl enable mlops-serve
             sudo systemctl restart mlops-serve
 
-            # TODO 8: Cho server san sang roi goi curl /health de xac nhan.
-            sleep 5
+            # 4. Cho server san sang roi goi curl /health de xac nhan
+            sleep 10
             curl -sf http://localhost:8000/health && echo "Health check passed." || exit 1
